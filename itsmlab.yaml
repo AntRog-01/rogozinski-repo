@@ -3,7 +3,7 @@ lab: 1                                   # the lab this repository is currently 
 baselines: {}                            # from Lab 2 on: per earlier lab, "student" (no checkpoint tag is published).
                                          # Lab 6 also accepts "checkpoint", whose files ship in the Lab 6 package:
                                          # {lab3: student|checkpoint, lab4: student|checkpoint}
-repository: "<owner>/<repo>"             # your public GitHub repository, e.g. "jkowalski/itsm-svcdesk"
+repository: "AntRog-01/rogozinski-repo"             # your public GitHub repository, e.g. "jkowalski/itsm-svcdesk"
 submissions_repo: swasik/itsm-2026-submissions
 checker_image: ghcr.io/swasik/itsmlab:2026  # the course tag: leave it; a checker update is `docker pull` of this tag
                                             # (the grader alone pins a digest and records it in every grade)
