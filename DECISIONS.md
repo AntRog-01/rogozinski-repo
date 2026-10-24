@@ -1,57 +1,45 @@
 ---
 svcdesk_decisions:
-  C1: wallclock      # wallclock | business
-  C2: immutable      # reopen | immutable
-  C3: vip            # matrix | vip
+  C1: wallclock
+  C2: immutable
+  C3: vip
 ---
-<!-- ai-generated: ??% - TODO: replace ?? with your estimate and say how AI was used (the advisory flags this line until you do) -->
+<!-- ai-generated: 85% - drafted decisions rationale with AI pair programmer -->
 
 # Decisions
 
-<!--
-How to fill this in (delete this comment when you are done):
-- The three values in the front matter must be the ones your RUNNING service exhibits. The checker probes the
-  service (checks 2.41, 2.35, 2.46) and compares them with this file (L1-CORE-4).
-- Keep the three headings starting with "## C1", "## C2", "## C3" and the five bold labels in each section. Write
-  at least 20 characters after every label; the lecturer reads this document, so write what you would say to
-  the service owner, not the minimum.
-- "Service owner": the role (never a person's name) who would sign this decision off, and why it is theirs.
-- "Customer outcome": what the reporter or the organisation gets from this choice, in one or two sentences.
-- Update the ai-generated line above to say how much of this text an AI wrote and how.
--->
-
 ## C1 - SLA clock for P1
 
-**Decision:** TODO
+**Decision:** Priority P1 tickets use a 24/7 wall-clock SLA measurement without pausing outside business hours.
 
-**Rejected alternative:** TODO
+**Rejected alternative:** Pausing P1 tickets outside business hours like priorities P2 through P4.
 
-**Reason:** TODO
+**Reason:** P1 incidents represent enterprise-wide work stoppage and severe business impact that cannot wait until Monday morning.
 
-**Service owner:** TODO
+**Service owner:** Head of IT Infrastructure and Operations, who manages 24/7 on-call incident response teams.
 
-**Customer outcome:** TODO
+**Customer outcome:** Critical outages receive round-the-clock incident response within 15 minutes of being reported.
 
 ## C2 - Closed tickets and reopening
 
-**Decision:** TODO
+**Decision:** Closed tickets are completely immutable and cannot be reopened under any circumstances.
 
-**Rejected alternative:** TODO
+**Rejected alternative:** Allowing reporters to reopen closed tickets within a 7-day grace window.
 
-**Reason:** TODO
+**Reason:** A ticket reaches closed status only after formal user confirmation; recurring issues require fresh tickets to maintain clean audit logs.
 
-**Service owner:** TODO
+**Service owner:** Service Desk Quality and Compliance Lead, responsible for reporting integrity and ITSM audit trails.
 
-**Customer outcome:** TODO
+**Customer outcome:** Customers receive clear visibility into new work via fresh tickets referencing previous context through the related_to field.
 
 ## C3 - VIP reporters and the priority matrix
 
-**Decision:** TODO
+**Decision:** Tickets submitted by VIP reporters are automatically elevated to priority P2 if the matrix calculation yields P3 or P4.
 
-**Rejected alternative:** TODO
+**Rejected alternative:** Strictly enforcing the standard impact and urgency matrix regardless of reporter status.
 
-**Reason:** TODO
+**Reason:** Executive leadership incidents carry organizational urgency that warrants faster desk triage regardless of raw technical scope.
 
-**Service owner:** TODO
+**Service owner:** IT Director of Customer Experience and VIP Support, managing executive service agreements.
 
-**Customer outcome:** TODO
+**Customer outcome:** VIP stakeholders receive expedited ticket handling and rapid escalation for their reported issues.
