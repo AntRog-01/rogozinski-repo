@@ -1,0 +1,27 @@
+# ai-generated: 90% - symptom alerts on the shop for checkout latency and error rate
+groups:
+  - name: shop-symptoms
+    rules:
+      - alert: ShopCheckoutSlow
+        expr: |
+          histogram_quantile(0.99, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name="checkout", span_kind="SPAN_KIND_SERVER"}[5m]))) > 2000
+        for: 2m
+        labels:
+          service: checkout
+          severity: P1
+        annotations:
+          summary: "Checkout p99 latency exceeds 2 seconds"
+
+      - alert: ShopCheckoutErrors
+        expr: |
+          (
+            sum(rate(traces_span_metrics_calls_total{service_name="checkout", span_kind="SPAN_KIND_SERVER", status_code="STATUS_CODE_ERROR"}[5m]))
+            /
+            sum(rate(traces_span_metrics_calls_total{service_name="checkout", span_kind="SPAN_KIND_SERVER"}[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          service: checkout
+          severity: P1
+        annotations:
+          summary: "More than 5 % of checkout requests fail"

@@ -1,0 +1,17 @@
+# ai-generated: 90% - Alertmanager routing and inhibition test cases
+routes:
+  - labels: {alertname: ShopCheckoutSlow, service: checkout, severity: P1}
+    receivers: [pager]
+  - labels: {alertname: ShopCheckoutErrors, service: checkout, severity: P1}
+    receivers: [pager]
+  - labels: {alertname: KbSearchErrorsBurnFast, service: svcdesk, slo: availability, severity: P1}
+    receivers: [pager]
+  - labels: {alertname: KbSearchErrorsBurnSlow, service: svcdesk, slo: availability, severity: P2}
+    receivers: [chat]
+inhibitions:
+  - source: {alertname: PaymentDown, service: payment, severity: P1, cluster: shop}
+    target: {alertname: CheckoutErrorRate, service: checkout, severity: P2, cluster: shop}
+    inhibited: true
+  - source: {alertname: PaymentDown, service: payment, severity: P1, cluster: shop}
+    target: {alertname: CheckoutErrorRate, service: checkout, severity: P2, cluster: other}
+    inhibited: false

@@ -1,7 +1,7 @@
 # itsmlab.yaml - read by the checker (itsmlab) and by the wrappers itsmlab.sh / itsmlab.ps1.
-lab: 3                                   # the lab this repository is currently submitting
+lab: 4                                   # the lab this repository is currently submitting
 login: "AntRog-01"
-baselines: {}                            # from Lab 2 on: per earlier lab, "student" (no checkpoint tag is published).
+baselines: {lab3: student}               # from Lab 2 on: per earlier lab, "student" (no checkpoint tag is published).
                                          # Lab 6 also accepts "checkpoint", whose files ship in the Lab 6 package:
                                          # {lab3: student|checkpoint, lab4: student|checkpoint}
 repository: "AntRog-01/rogozinski-repo"             # your public GitHub repository, e.g. "jkowalski/itsm-svcdesk"
