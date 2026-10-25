@@ -9,5 +9,11 @@ services:
     volumes:
       - svcdesk-data:/data
 
+  tests:
+    profiles: ["tests"]
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+
 volumes:
   svcdesk-data:

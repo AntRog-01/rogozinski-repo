@@ -1,4 +1,4 @@
-# ai-generated: 90% - implementation of svcdesk HTTP API and SLA engine with AI assistant
+# ai-generated: 90% - implementation of svcdesk HTTP API, SLA engine, and DORA delivery endpoints
 import os
 import sqlite3
 import uuid
@@ -8,6 +8,11 @@ from typing import Optional, Any, Dict, List
 from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+try:
+    from dora import validate_and_compute_dora, get_ticket_events, ValidationError
+except ImportError:
+    from src.dora import validate_and_compute_dora, get_ticket_events, ValidationError
 
 app = FastAPI(title="svcdesk", docs_url=None, redoc_url=None)
 
@@ -455,6 +460,26 @@ def reopen_ticket(ticket_id: str, request: Request):
     updated = cur.fetchone()
     conn.close()
     return row_to_ticket(updated)
+
+@app.post("/dora/metrics")
+async def post_dora_metrics(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": {"code": "invalid_json", "message": "Malformed JSON"}})
+
+    try:
+        result = validate_and_compute_dora(body)
+        return JSONResponse(status_code=200, content=result)
+    except ValidationError as ve:
+        return JSONResponse(status_code=400, content={"error": {"code": ve.code, "message": ve.message}})
+
+@app.get("/dora/ticket-events")
+def get_dora_ticket_events():
+    conn = get_db()
+    events = get_ticket_events(conn)
+    conn.close()
+    return JSONResponse(status_code=200, content=events)
 
 @app.api_route("/{path_name:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 def catch_all(path_name: str):
