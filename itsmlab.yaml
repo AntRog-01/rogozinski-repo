@@ -1,5 +1,6 @@
 # itsmlab.yaml - read by the checker (itsmlab) and by the wrappers itsmlab.sh / itsmlab.ps1.
-lab: 2                                   # the lab this repository is currently submitting
+lab: 3                                   # the lab this repository is currently submitting
+login: "AntRog-01"
 baselines: {}                            # from Lab 2 on: per earlier lab, "student" (no checkpoint tag is published).
                                          # Lab 6 also accepts "checkpoint", whose files ship in the Lab 6 package:
                                          # {lab3: student|checkpoint, lab4: student|checkpoint}

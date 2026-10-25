@@ -1,7 +1,11 @@
-# ai-generated: 90% - implementation of svcdesk HTTP API, SLA engine, and DORA delivery endpoints
+# ai-generated: 90% - implementation of svcdesk HTTP API, SLA engine, DORA endpoints, and Lab 3 Prometheus instrumentation
 import os
 import sqlite3
 import uuid
+import time
+import urllib.request
+import urllib.parse
+import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional, Any, Dict, List
@@ -14,10 +18,56 @@ try:
 except ImportError:
     from src.dora import validate_and_compute_dora, get_ticket_events, ValidationError
 
+try:
+    from metrics import histogram
+except ImportError:
+    from src.metrics import histogram
+
 app = FastAPI(title="svcdesk", docs_url=None, redoc_url=None)
 
 DB_PATH = os.environ.get("SVCDESK_DB", "/data/svcdesk.db")
 WARSAW_TZ = ZoneInfo("Europe/Warsaw")
+
+def get_route_template(request: Request) -> str:
+    path = request.url.path
+    if path == "/health":
+        return "/health"
+    elif path == "/tickets":
+        return "/tickets"
+    elif path == "/kb/search":
+        return "/kb/search"
+    elif path == "/dora/metrics":
+        return "/dora/metrics"
+    elif path == "/dora/ticket-events":
+        return "/dora/ticket-events"
+    elif path.startswith("/tickets/"):
+        parts = path.strip("/").split("/")
+        if len(parts) == 2:
+            return "/tickets/{id}"
+        elif len(parts) == 3:
+            sub = parts[2]
+            if sub in ("sla", "ack", "start", "resolve", "close", "reopen"):
+                return f"/tickets/{{id}}/{sub}"
+            return "/tickets/{id}"
+    return "unmatched"
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    if request.url.path == "/metrics":
+        return await call_next(request)
+
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start_time
+
+    route_template = get_route_template(request)
+    histogram.observe(
+        method=request.method,
+        route=route_template,
+        status_code=str(response.status_code),
+        duration_seconds=duration
+    )
+    return response
 
 def init_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -80,7 +130,6 @@ def compute_priority(impact: int, urgency: int, vip: bool) -> str:
         (3, 1): "P3", (3, 2): "P4", (3, 3): "P4"
     }
     prio = matrix.get((impact, urgency), "P4")
-    # C3 = vip: promote P3 or P4 to P2 for VIPs
     if vip and prio in ("P3", "P4"):
         prio = "P2"
     return prio
@@ -90,20 +139,17 @@ def add_business_seconds(start_dt: datetime, seconds_to_add: int) -> datetime:
     rem = seconds_to_add
 
     while True:
-        # Check weekday
-        if dt.weekday() >= 5: # Saturday or Sunday
+        if dt.weekday() >= 5:
             days_ahead = 7 - dt.weekday()
             dt = dt.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
             continue
         
-        # Weekday: check hours
         if dt.hour < 8:
             dt = dt.replace(hour=8, minute=0, second=0, microsecond=0)
         elif dt.hour >= 16:
             dt = dt.replace(hour=8, minute=0, second=0, microsecond=0) + timedelta(days=1)
             continue
         
-        # Inside window [08:00, 16:00)
         close_today = dt.replace(hour=16, minute=0, second=0, microsecond=0)
         available_today = int((close_today - dt).total_seconds())
 
@@ -122,7 +168,6 @@ def compute_due_dates(created_at: datetime, priority: str):
     }
     ack_sec, res_sec = targets[priority]
 
-    # C1 = wallclock: P1 is wall-clock, P2-P4 are business
     if priority == "P1":
         ack_due = created_at + timedelta(seconds=ack_sec)
         res_due = created_at + timedelta(seconds=res_sec)
@@ -168,6 +213,39 @@ def row_to_ticket(row: sqlite3.Row) -> Dict[str, Any]:
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "svcdesk"}
+
+@app.get("/metrics")
+def get_metrics():
+    content = histogram.generate_prometheus_text()
+    return Response(content=content, media_type="text/plain; version=0.0.4; charset=utf-8")
+
+@app.get("/kb/search")
+def kb_search(q: Optional[str] = None):
+    if q is None or not (1 <= len(q) <= 200):
+        return JSONResponse(
+            status_code=400,
+            content={"error": {"code": "validation", "message": "Query parameter 'q' must be 1..200 characters"}}
+        )
+
+    kb_url = os.environ.get("KB_INDEX_URL", "http://kb-index:8080").rstrip("/")
+    encoded_q = urllib.parse.quote(q)
+    target_url = f"{kb_url}/search?q={encoded_q}"
+    req = urllib.request.Request(target_url, headers={"User-Agent": "svcdesk"})
+    try:
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8"))
+                return JSONResponse(status_code=200, content={"query": q, "hits": data.get("hits", [])})
+            else:
+                return JSONResponse(
+                    status_code=502,
+                    content={"error": {"code": "upstream_unavailable", "message": "Upstream error"}}
+                )
+    except Exception:
+        return JSONResponse(
+            status_code=502,
+            content={"error": {"code": "upstream_unavailable", "message": "Upstream unavailable"}}
+        )
 
 @app.post("/tickets", status_code=status.HTTP_201_CREATED)
 async def create_ticket(request: Request):
@@ -288,23 +366,19 @@ def get_ticket_sla(ticket_id: str, request: Request):
     priority = row["priority"]
     state = row["state"]
 
-    # Ack breached evaluation
     if row["acknowledged_at"]:
         ack_breached = parse_iso(row["acknowledged_at"]) > ack_due
     else:
         ack_breached = now > ack_due
 
-    # Resolve breached evaluation
     if state in ("resolved", "closed") and row["resolved_at"]:
         resolve_breached = parse_iso(row["resolved_at"]) > res_due
     else:
         resolve_breached = now > res_due
 
-    # Paused evaluation
     if state in ("resolved", "closed"):
         paused = False
     elif priority == "P1":
-        # C1 = wallclock -> P1 is never paused
         paused = False
     else:
         paused = not is_inside_business_hours(now)
@@ -437,7 +511,6 @@ def reopen_ticket(ticket_id: str, request: Request):
 
     current_state = row["state"]
 
-    # C2 = immutable: closed tickets answer 409 regardless of age
     if current_state == "closed":
         conn.close()
         return JSONResponse(status_code=409, content={"error": {"code": "ticket_closed", "message": "Closed tickets are immutable"}})
@@ -446,7 +519,6 @@ def reopen_ticket(ticket_id: str, request: Request):
         conn.close()
         return JSONResponse(status_code=409, content={"error": {"code": "invalid_transition", "message": "Can only reopen resolved tickets"}})
 
-    # Check 7-day window for resolved tickets
     resolved_at = parse_iso(row["resolved_at"])
     window_deadline = resolved_at + timedelta(days=7)
 
