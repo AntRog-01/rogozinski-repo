@@ -1,0 +1,9 @@
+# ai-generated: 90% - Helm values for kube-prometheus-stack 89.2.2 on kind v0.33.0
+prometheus:
+  prometheusSpec:
+    retention: 2h
+    resources:
+      limits:
+        memory: 1Gi
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false

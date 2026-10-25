@@ -1,0 +1,52 @@
+# ai-generated: 90% - PrometheusRule resource for svcdesk SLO alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: svcdesk-slo
+  labels:
+    role: alert-rules
+spec:
+  groups:
+    - name: svcdesk-slo
+      rules:
+        - alert: KbSearchErrorsBurnFast
+          expr: |
+            (
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search", http_response_status_code=~"5.."}[1h]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search"}[1h]))
+            ) > 14.4 * (1 - 0.99)
+            and
+            (
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search", http_response_status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search"}[5m]))
+            ) > 14.4 * (1 - 0.99)
+          for: 2m
+          labels:
+            service: svcdesk
+            slo: availability
+            severity: P1
+          annotations:
+            summary: "High error burn rate on /kb/search: 14.4x consuming 2% of budget in 1 hour"
+
+        - alert: KbSearchErrorsBurnSlow
+          expr: |
+            (
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search", http_response_status_code=~"5.."}[6h]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search"}[6h]))
+            ) > 6.0 * (1 - 0.99)
+            and
+            (
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search", http_response_status_code=~"5.."}[30m]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{job="svcdesk", http_route="/kb/search"}[30m]))
+            ) > 6.0 * (1 - 0.99)
+          for: 5m
+          labels:
+            service: svcdesk
+            slo: availability
+            severity: P2
+          annotations:
+            summary: "Slow error burn rate on /kb/search: 6x consuming 5% of budget in 6 hours"

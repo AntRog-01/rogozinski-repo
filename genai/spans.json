@@ -1,0 +1,17 @@
+[
+  {
+    "name": "chat gpt-4o-mini",
+    "context": {
+      "trace_id": "0x5b8aa5a2d2c872e8321cf37308d69df2",
+      "span_id": "0x5fb397be34d23b0f"
+    },
+    "attributes": {
+      "gen_ai.operation.name": "chat",
+      "gen_ai.provider.name": "openai",
+      "gen_ai.request.model": "gpt-4o-mini",
+      "gen_ai.response.model": "gpt-4o-mini-2024-07-18",
+      "gen_ai.usage.input_tokens": 42,
+      "gen_ai.usage.output_tokens": 17
+    }
+  }
+]

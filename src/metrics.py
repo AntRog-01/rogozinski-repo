@@ -3,15 +3,20 @@ import time
 import threading
 from typing import Dict, Tuple, List, Optional, Any
 
-# Initial draft ladder (14 boundaries, standard Prometheus client ladder)
-# Will be updated to fine resolution ladder after measuring q with load 3
-DEFAULT_LADDER: List[float] = [
-    0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0
+# Designed ladder for login antrog-01 (measured q = 212.5 ms):
+# 28 finite boundaries (< 30 limit):
+# Fine resolution across [180ms, 260ms] covering ±10% around q (191ms to 234ms)
+# with 10ms bucket widths (relative width 4.7% <= 20% limit).
+# Includes threshold 0.25 for latency SLI.
+DESIGNED_LADDER: List[float] = [
+    0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.05, 0.075, 0.1, 0.15,
+    0.18, 0.19, 0.20, 0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.28, 0.30,
+    0.40, 0.50, 0.75, 1.0, 2.0
 ]
 
 class RequestHistogram:
     def __init__(self, ladder: Optional[List[float]] = None):
-        self.ladder = ladder if ladder is not None else list(DEFAULT_LADDER)
+        self.ladder = ladder if ladder is not None else list(DESIGNED_LADDER)
         self.lock = threading.Lock()
         # Key: (method, route, status_code)
         # Value: {"count": int, "sum": float, "buckets": {boundary: int}}
@@ -48,7 +53,6 @@ class RequestHistogram:
                 labels_str = f'http_request_method="{method}",http_response_status_code="{status_code}",http_route="{route}"'
                 cumulative = 0
                 for b in self.ladder:
-                    # Format boundary for Prometheus: e.g. 1.0, 0.25
                     b_str = f"{b:.6f}".rstrip("0").rstrip(".")
                     if "." not in b_str and "e" not in b_str:
                         b_str += ".0"
