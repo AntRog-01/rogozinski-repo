@@ -1,6 +1,6 @@
 ---
 lab5_triage:
-  image: ghcr.io/antrog-01/rogozinski-repo@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  image: ghcr.io/antrog-01/rogozinski-repo@sha256:1b6fadb4f373c00b7e2a8821d4ab3a3c42769e1001d9cb37a2d47c3d1ea9bcfd
   sarif_receipt: 1
 ---
 <!-- ai-generated: 90% - triage analysis of scanner findings and supply chain security -->
