@@ -2,7 +2,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir fastapi uvicorn[standard] tzdata
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir fastapi uvicorn[standard] tzdata && pip uninstall -y pip
 
 COPY src/ /app/src/
 

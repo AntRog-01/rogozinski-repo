@@ -1,0 +1,13 @@
+# ai-generated: 90% - Semgrep custom rules for svcdesk service code
+rules:
+  - id: direct-sqlite-connect
+    languages: [python]
+    severity: WARNING
+    message: Direct sqlite3.connect call; consider using dependency injection or a connection manager.
+    pattern: sqlite3.connect(...)
+
+  - id: jsonresponse-status-404
+    languages: [python]
+    severity: WARNING
+    message: Hardcoded 404 in JSONResponse; prefer status.HTTP_404_NOT_FOUND.
+    pattern: JSONResponse(..., status_code=404, ...)
